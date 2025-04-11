@@ -1,5 +1,4 @@
 import sys
-import os
 from random import shuffle
 from juegos_simplificado import ModeloJuegoZT2, alpha_beta, juega_dos_jugadores
 
@@ -93,7 +92,7 @@ def heuristic(s, j):
             score += _small_board_potential(b, j) * 10
             score -= _small_board_potential(b, -j) * 10
     
-    # strategic positions (center and corners of macro)
+    # strategic positions
     strategic_indices = [0, 2, 4, 6, 8]
     for idx in strategic_indices:
         if macro[idx]==j:
@@ -119,158 +118,84 @@ def _small_board_potential(cells, player):
             pot += 1  # one in a row with open spots
     return pot
 
-# Enhanced display functions
-def clear_screen():
-    """Clear the console screen."""
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-def print_board_with_colors(s):
-    """Print the Ultimate Tic Tac Toe board with colors and better formatting."""
+# Simple enhanced display function
+def print_board(s):
     boards, macro, next_board = s
     
-    # ANSI color codes
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-    X_COLOR = "\033[91m"  # Bright red
-    O_COLOR = "\033[94m"  # Bright blue
-    HIGHLIGHT = "\033[103m"  # Yellow background
-    MACRO_X = "\033[41m"  # Red background
-    MACRO_O = "\033[44m"  # Blue background
-    MACRO_TIE = "\033[100m"  # Grey background
-    
-    # Board indices for reference
-    board_indices = [
-        '┌───┬───┬───┐',
-        '│0,0│0,1│0,2│',
-        '├───┼───┼───┤',
-        '│1,0│1,1│1,2│',
-        '├───┼───┼───┤',
-        '│2,0│2,1│2,2│',
-        '└───┴───┴───┘'
-    ]
-    
-    def cell_repr(value, is_highlight=False):
-        if value == 1:
-            return f"{HIGHLIGHT if is_highlight else ''}{X_COLOR}{BOLD}X{RESET}"
-        elif value == -1:
-            return f"{HIGHLIGHT if is_highlight else ''}{O_COLOR}{BOLD}O{RESET}"
-        else:
-            return f"{HIGHLIGHT if is_highlight else ''} {RESET}"
+    def cell_repr(v):
+        return {1:'X', -1:'O', 0:'.'}[v]
     
     def board_status(idx):
         if macro[idx] == 1:
-            return f"{MACRO_X} X {RESET}"
+            return "[X]"
         elif macro[idx] == -1:
-            return f"{MACRO_O} O {RESET}"
+            return "[O]"
         elif macro[idx] == 2:
-            return f"{MACRO_TIE} # {RESET}"
+            return "[=]"  # tie
         else:
             return "   "
     
-    # Reference grid
-    print("\nBoard reference (board,cell):")
-    for line in board_indices:
-        print(f"  {line}")
+    # Print board reference
+    print("\nBoard reference:")
+    print("┌───┬───┬───┐")
+    print("│0,1│0,2│0,3│")
+    print("├───┼───┼───┤")
+    print("│1,0│1,1│1,2│")
+    print("├───┼───┼───┤")
+    print("│2,0│2,1│2,2│")
+    print("└───┴───┴───┘")
     
-    print("\nGame state:")
+    # Print macro board status
+    print("\nMacro board:")
+    for r in range(3):
+        status_row = " ".join(board_status(r*3+c) for c in range(3))
+        print(status_row)
     
-    # Print macro status on top
-    print("  Macro board:         ", end="")
-    for c in range(3):
-        print(board_status(c), end=" ")
-    print()
-    print("                       ", end="")
-    for c in range(3, 6):
-        print(board_status(c), end=" ")
-    print()
-    print("                       ", end="")
-    for c in range(6, 9):
-        print(board_status(c), end=" ")
-    print("\n")
-    
-    # Print the detailed boards
-    horizontal_line_small = "  ―――――――――――"
-    horizontal_line_big = "  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    
+    # Print main board
+    print("\nGame board:")
     for br in range(3):
-        print(horizontal_line_big)
         for r in range(3):
-            for sub_r in range(1):  # Just one row per cell for compactness
-                line = "  "
-                for bc in range(3):
-                    board_idx = br * 3 + bc
-                    is_next = next_board == board_idx or (next_board is None and macro[board_idx] == 0)
-                    prefix = "→ " if is_next else "  "
-                    line += prefix
-                    
-                    for c in range(3):
-                        cell_idx = r * 3 + c
-                        cell_val = boards[board_idx][cell_idx]
-                        is_highlight = next_board == board_idx if next_board is not None else False
-                        line += cell_repr(cell_val, is_highlight)
-                        line += " "
-                    
-                    line += "│ "
-                print(line)
-            
-            # Cell indices inside board
-            line = "  "
+            row_parts = []
             for bc in range(3):
-                board_idx = br * 3 + bc
-                line += "  "
-                for c in range(3):
-                    cell_idx = r * 3 + c
-                    cell_text = f"{board_idx},{cell_idx}"
-                    line += f"{cell_text:3} "
-                line += "│ "
-            print(line)
-            
-            # Separator after each row in the small board
-            if r < 2:
-                line = "  "
-                for bc in range(3):
-                    line += "  " + horizontal_line_small + " │ "
-                print(line)
-        
-        # Separator between big board rows
+                b = br*3+bc
+                row = ""
+                # Mark active board with asterisks
+                if next_board == b or (next_board is None and macro[b] == 0):
+                    row += "*"
+                else:
+                    row += " "
+                # Print cells in this row of this board
+                row += "".join(cell_repr(boards[b][r*3+c]) for c in range(3))
+                row_parts.append(row)
+            print(" | ".join(row_parts))
         if br < 2:
-            print(horizontal_line_big)
-    
-    print(horizontal_line_big)
+            print("-" * 17)  # Separator between macro-rows
     
     # Print next board info
     if next_board is not None:
-        print(f"\nNext move must be in board {next_board} (row {next_board//3}, col {next_board%3})")
+        print(f"\nNext move must be in board {next_board}")
     else:
         print("\nNext move can be in any open board")
 
-# CLI runner functions
 def human_player(juego, s, j):
-    clear_screen()
-    print_board_with_colors(s)
+    print_board(s)
     moves = juego.jugadas_legales(s, j)
-    
-    # Format moves for better readability
-    formatted_moves = []
-    for b, i in moves:
-        row, col = i // 3, i % 3
-        formatted_moves.append(f"({b},{i}) [board {b}, position ({row},{col})]")
-    
     print(f"\nPlayer {'X' if j==1 else 'O'}'s turn")
+    print(f"Legal moves: {moves}")
     
     while True:
-        inp = input(f"\nEnter your move (board,cell): ")
+        inp = input(f"Enter move (board,cell): ")
         try:
             b, i = map(int, inp.strip().split(','))
             if (b, i) in moves:
                 return (b, i)
             else:
-                print(f"Invalid move. The move ({b},{i}) is not legal.")
-        except ValueError:
-            print("Invalid format. Please use 'board,cell' format (e.g. '4,8').")
+                print(f"Invalid move. Try again.")
+        except:
+            print("Invalid format. Use 'board,cell' (e.g. '4,8').")
 
 def ai_player(juego, s, j):
-    # Add a maximum depth to limit search
+    # Maximum depth for alpha-beta search
     MAX_DEPTH = 3
     
     def evaluate_move(state, player):
@@ -342,58 +267,61 @@ def ai_player(juego, s, j):
         
         return best_move
     
-    clear_screen()
-    print_board_with_colors(s)
     print(f"\nAI ({('X' if j==1 else 'O')}) is thinking...")
-    
     move = alpha_beta_limited(juego, s, j)
-    b, i = move
-    row, col = i // 3, i % 3
-    print(f"AI chose: ({b},{i}) [board {b}, position ({row},{col})]")
-    
-    # Pause briefly so humans can see the AI's move
-    input("\nPress Enter to continue...")
+    print(f"AI chose move: {move}")
     return move
 
 def main():
     juego = UltimateTicTacToe()
     
-    clear_screen()
-    print("\n" + "=" * 60)
-    print("  ULTIMATE TIC TAC TOE")
-    print("=" * 60)
+    print("\n==== ULTIMATE TIC TAC TOE ====")
     print("\nRules:")
-    print("1. The board consists of 9 small tic-tac-toe boards arranged in a 3x3 grid")
-    print("2. Each turn, you must play in the small board indicated by the previous move")
-    print("3. Win three small boards in a row to win the game")
+    print("1. Each turn, play in the small board indicated by the previous move")
+    print("2. Win three small boards in a row to win the game")
     print("\nGame modes:")
-    print(" hva - Human vs AI (default)")
-    print(" aah - AI vs Human")
-    print(" ava - AI vs AI")
-    print("\n" + "=" * 60)
+    print("  hva - Human vs AI (default)")
+    print("  aah - AI vs Human")
+    print("  ava - AI vs AI")
     
-    mode = sys.argv[1] if len(sys.argv) > 1 else 'hva'
+    # Process command line argument
+    mode = sys.argv[1] if len(sys.argv) > 1 else None
     
+    # If no mode provided, prompt user
+    if mode not in ['hva', 'aah', 'ava']:
+        print("\nSelect game mode:")
+        print("1. Human vs AI (you play first)")
+        print("2. AI vs Human (AI plays first)")
+        print("3. AI vs AI (demonstration)")
+        choice = input("Enter choice (1-3): ")
+        
+        if choice == '1':
+            mode = 'hva'
+        elif choice == '2':
+            mode = 'aah'
+        elif choice == '3':
+            mode = 'ava'
+        else:
+            print("Invalid choice. Defaulting to Human vs AI.")
+            mode = 'hva'
+    
+    # Set players based on mode
     if mode == 'hva':
         p1, p2 = human_player, ai_player
         print("\nYou're playing as X (first)")
     elif mode == 'aah':
         p1, p2 = ai_player, human_player
         print("\nYou're playing as O (second)")
-    else:
+    else:  # ava
         p1 = p2 = ai_player
         print("\nAI vs AI demonstration")
     
-    input("\nPress Enter to start the game...")
-    
+    # Play the game
     result, final = juega_dos_jugadores(juego, p1, p2)
     
-    clear_screen()
-    print("\n" + "=" * 60)
-    print("  GAME OVER")
-    print("=" * 60 + "\n")
-    
-    print_board_with_colors(final)
+    # Show final state
+    print("\n==== GAME OVER ====")
+    print_board(final)
     
     if result == 1:
         print("\nResult: X WINS!")
@@ -402,8 +330,7 @@ def main():
     else:
         print("\nResult: DRAW")
         
-    print("\nThanks for playing Ultimate Tic Tac Toe!")
-    print("=" * 60)
+    print("\nThanks for playing!")
 
 if __name__ == '__main__':
     main()
